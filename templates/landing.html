@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to My Stock App</title>
+</head>
+<body>
+  <h1>Welcome to My Stock App</h1>
+  <p>Please choose an option:</p>
+  <a href="{{ url_for('signup') }}"><button>Signup</button></a>
+  <a href="{{ url_for('login') }}"><button>Login</button></a>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</body>
+</html>

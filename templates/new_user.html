@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome, {{ user.name }}!</title>
+</head>
+<body>
+  <h1>Welcome, {{ user.name }}!</h1>
+  <p>Please add your stock details below, or skip to go to your dashboard.</p>
+  
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Form to add a stock -->
+  <form action="{{ url_for('new_user') }}" method="POST">
+    <label for="symbol">Stock Symbol:</label>
+    <input type="text" name="symbol" id="symbol" required>
+    <br><br>
+    <label for="buy_price">Buy Price per Share ($):</label>
+    <input type="number" step="0.01" name="buy_price" id="buy_price" required>
+    <br><br>
+    <label for="quantity">Quantity:</label>
+    <input type="number" name="quantity" id="quantity" required>
+    <br><br>
+    <button type="submit">Add Stock</button>
+  </form>
+  <br>
+  <!-- Option to skip and go to dashboard -->
+  <a href="{{ url_for('dashboard') }}"><button>Skip and Go to Dashboard</button></a>
+  
+  <hr>
+  <h2>Your Current Stocks</h2>
+  {% if stocks %}
+    <table border="1" cellpadding="5" cellspacing="0">
+      <tr>
+        <th>Stock Symbol</th>
+        <th>Buy Price</th>
+        <th>Quantity</th>
+        <th>Current Price</th>
+      </tr>
+      {% for stock in stocks %}
+      <tr>
+        <td>{{ stock.symbol }}</td>
+        <td>{{ stock.buy_price }}</td>
+        <td>{{ stock.quantity }}</td>
+        <td>{{ stock.current_price }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p>No stocks added yet.</p>
+  {% endif %}
+  
+  <br>
+  <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
