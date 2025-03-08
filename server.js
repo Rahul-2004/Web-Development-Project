@@ -31,7 +31,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // set secure: true if HTTPS in production
+  cookie: { secure: false ,httpOnly:true} // set secure: true if HTTPS in production
 }));
 
 // Initialize Passport (must come after session)

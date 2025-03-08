@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard - Stock Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f2f2f2; }
+    header { background: #333; color: white; padding: 10px; text-align: center; }
+    main { padding: 20px; }
+    form { margin-bottom: 20px; }
+    input, button { padding: 8px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stock Tracker Dashboard</h1>
+    <button id="logoutBtn">Logout</button>
+  </header>
+  <main>
+    <section id="userInfo">
+      <h2>Welcome, <span id="userName"></span></h2>
+      <p>Your email: <span id="userEmail"></span></p>
+    </section>
+
+    <section id="addStock">
+      <h2>Add Stock</h2>
+      <form id="addStockForm">
+        <input type="text" id="stockSymbol" placeholder="Stock Symbol (e.g., RELIANCE.NSE)" required />
+        <input type="number" id="stockBuyPrice" placeholder="Buy Price" required />
+        <input type="number" id="stockQuantity" placeholder="Quantity" required />
+        <button type="submit">Add Stock</button>
+      </form>
+    </section>
+
+    <section id="stocksTable">
+      <h2>Your Stocks</h2>
+      <button id="refreshStocks">Refresh Stocks</button>
+      <table id="stocksList">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Quantity</th>
+            <th>Buy Price</th>
+            <th>Current Price</th>
+            <th>Profit/Loss</th>
+            <th>Current Value</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Stocks will be dynamically added here -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    let currentUserEmail = '';
+
+    // Fetch logged-in user details from backend
+    async function fetchUser() {
+      try {
+        const res = await fetch('http://localhost:5000/auth/user', { credentials: 'include' });
+        const data = await res.json();
+        if (data.user) {
+          document.getElementById('userName').innerText = data.user.name;
+          document.getElementById('userEmail').innerText = data.user.email;
+          currentUserEmail = data.user.email;
+          fetchStocks();
+        } else {
+          // Not logged in; redirect to login page
+          window.location.href = "index.html";
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    }
+
+    // Add a new stock
+    async function addStock(event) {
+      event.preventDefault();
+      const symbol = document.getElementById('stockSymbol').value;
+      const buyPrice = parseFloat(document.getElementById('stockBuyPrice').value);
+      const quantity = parseInt(document.getElementById('stockQuantity').value, 10);
+
+      const res = await fetch('http://localhost:5000/stocks/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userEmail: currentUserEmail, symbol, buyPrice, quantity })
+      });
+      const data = await res.json();
+      alert(data.message);
+      fetchStocks();
+    }
+
+    // Fetch stocks with profit/loss info
+    async function fetchStocks() {
+      const res = await fetch(`http://localhost:5000/stocks/profitloss/${currentUserEmail}`, { credentials: 'include' });
+      const data = await res.json();
+      const tbody = document.querySelector('#stocksList tbody');
+      tbody.innerHTML = '';
+      if (data.stocks && data.stocks.length > 0) {
+        data.stocks.forEach(stock => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${stock.symbol}</td>
+            <td>${stock.quantity}</td>
+            <td>${stock.buyPrice}</td>
+            <td>${stock.currentDayPrice}</td>
+            <td>${stock.profit}</td>
+            <td>${stock.currentValue}</td>
+            <td><button onclick="deleteStock('${stock._id}')">Delete</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="7">No stocks found</td></tr>`;
+      }
+    }
+
+    // Delete a stock entry (calls DELETE endpoint)
+    async function deleteStock(stockId) {
+      if (!confirm("Are you sure you want to delete this stock?")) return;
+      const res = await fetch(`http://localhost:5000/stocks/delete/${stockId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      alert(data.message);
+      fetchStocks();
+    }
+
+    // Logout function
+    async function logout() {
+      const res = await fetch('http://localhost:5000/auth/logout', { credentials: 'include' });
+      if (res.ok) {
+        window.location.href = "index.html";
+      }
+    }
+
+    document.getElementById('addStockForm').addEventListener('submit', addStock);
+    document.getElementById('refreshStocks').addEventListener('click', fetchStocks);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    // On page load, check if user is logged in
+    fetchUser();
+  </script>
+</body>
+</html>

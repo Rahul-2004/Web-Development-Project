@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Stock Investment Tracker</h1>
+
+    <!-- Login -->
+    <div id="login-section">
+        <button onclick="loginWithGoogle()">Login with Google</button>
+    </div>
+
+    <!-- User Details -->
+    <div id="user-section" class="hidden">
+        <h3>Welcome, <span id="user-name"></span></h3>
+        <button onclick="logout()">Logout</button>
+
+        <h2>Add Stock</h2>
+        <input type="text" id="stock-symbol" placeholder="Stock Symbol (e.g., RELIANCE.NSE)">
+        <input type="number" id="stock-qty" placeholder="Quantity">
+        <input type="number" id="stock-price" placeholder="Buy Price">
+        <button onclick="addStock()">Add Stock</button>
+
+        <h2>Your Stocks</h2>
+        <button onclick="fetchStocks()">Refresh Stocks</button>
+        <div id="stocks-list"></div>
+    </div>
+
+    <script>
+        let userEmail = "";
+
+        // Step 1: Google Login
+        function loginWithGoogle() {
+            window.location.href = "http://localhost:5000/auth/google";
+        }
+
+        // Step 2: Check if Logged In
+        async function checkLogin() {
+            const res = await fetch("http://localhost:5000/auth/user", { credentials: "include" });
+            const data = await res.json();
+
+            if (data.user) {
+                document.getElementById("login-section").classList.add("hidden");
+                document.getElementById("user-section").classList.remove("hidden");
+                document.getElementById("user-name").innerText = data.user.name;
+                userEmail = data.user.email;
+                fetchStocks();  // Fetch stocks automatically
+            }
+        }
+
+        // Step 3: Add Stock Entry
+        async function addStock() {
+            const stockSymbol = document.getElementById("stock-symbol").value;
+            const quantity = document.getElementById("stock-qty").value;
+            const buyPrice = document.getElementById("stock-price").value;
+
+            const res = await fetch("http://localhost:5000/stocks/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: userEmail, symbol: stockSymbol, buyPrice, quantity })
+            });
+
+            const data = await res.json();
+            alert(data.message);
+            fetchStocks();  // Refresh stocks after adding
+        }
+
+        // Step 4: Fetch Stocks and Calculate Profit/Loss
+        async function fetchStocks() {
+            const res = await fetch(`http://localhost:5000/stocks/profitloss/${userEmail}`);
+            const data = await res.json();
+
+            const stocksDiv = document.getElementById("stocks-list");
+            stocksDiv.innerHTML = "<h3>Stock List</h3>";
+            data.stocks.forEach(stock => {
+                stocksDiv.innerHTML += `
+                    <p><strong>${stock.symbol}</strong> | Qty: ${stock.quantity} | 
+                    Buy Price: ${stock.buyPrice} | Current: ${stock.currentDayPrice} | 
+                    Profit/Loss: ${stock.profit}</p>`;
+            });
+        }
+
+        // Step 5: Logout
+        async function logout() {
+            await fetch("http://localhost:5000/auth/logout", { credentials: "include" });
+            window.location.reload();
+        }
+
+        // Check if user is already logged in on page load
+        checkLogin();
+    </script>
+</body>
+</html>

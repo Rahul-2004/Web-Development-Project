@@ -1,36 +1,42 @@
-// routes/authRoutes.js
 const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 
-// 1) Trigger Google login with scope
-router.get('/google', (req, res, next) => {
-  console.log('🔹 GET /auth/google triggered');
-  next();
-}, passport.authenticate('google', { scope: ['profile', 'email'] }));
+// 1️⃣ Trigger Google login
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// 2) Google callback
+// 2️⃣ Google OAuth callback
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
     console.log('🔹 Google callback success, user:', req.user);
-    // You can redirect to a frontend route or send JSON
-    res.json({ message: 'Google OAuth success', user: req.user });
+    res.redirect(`http://localhost:5500/dashboard.html`); // Redirect to frontend
   }
 );
 
-// For convenience, a separate "signup" route (if you want):
-router.get('/signup', passport.authenticate('google', { scope: ['profile', 'email'] }));
+// 3️⃣ Check if user is logged in
+router.get('/user', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ user: req.user });
+  } else {
+    res.status(401).json({ message: 'Not logged in' });
+  }
+});
 
-// Logout route
+// 4️⃣ Logout route
 router.get('/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
       console.error('❌ Error in logout:', err);
       return res.status(500).json({ error: 'Logout failed' });
     }
-    console.log('🔹 User logged out');
-    res.json({ message: 'Logged out successfully' });
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('❌ Session destroy error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.redirect('http://localhost:5500/index.html'); // Redirect after logout
+    });
   });
 });
 
