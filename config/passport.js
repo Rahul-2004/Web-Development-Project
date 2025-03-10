@@ -28,7 +28,7 @@ passport.use(new GoogleStrategy({
       }
       return done(null, user);
     } catch (err) {
-      console.error('❌ Error in GoogleStrategy:', err);
+      console.error('Error in GoogleStrategy:', err);
       return done(err, null);
     }
   }
@@ -43,10 +43,10 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await User.findById(id);
-    console.log('🔹 deserializeUser:', user);
+    console.log('deserializeUser:', user);
     done(null, user);
   } catch (err) {
-    console.error('❌ Error in deserializeUser:', err);
+    console.error('Error in deserializeUser:', err);
     done(err, null);
   }
 });

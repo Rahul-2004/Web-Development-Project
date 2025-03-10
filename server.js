@@ -1,9 +1,8 @@
-// server.js
 require('dotenv').config();
+const cors = require('cors');
 const express = require('express');
 const session = require('express-session');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const passport = require('passport'); // from node_modules
 require('./config/passport');        // loads our passport config
 
@@ -21,17 +20,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parsers & CORS
+app.use(cors({
+  origin: 'http://localhost:5500', // The frontend URL
+  credentials: true               // Allow session cookies from browser
+}));
+
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cors());
 
 // Session middleware (required for Passport)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false ,httpOnly:true} // set secure: true if HTTPS in production
+  cookie: { secure: false, httpOnly: true } // set secure: true if HTTPS in production
 }));
 
 // Initialize Passport (must come after session)
@@ -43,8 +46,8 @@ mongoose.set('debug', true);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Mount routes
 app.use('/auth', authRoutes);
@@ -54,7 +57,7 @@ app.use('/stocks', stockRoutes);
 // Test route
 app.get('/', (req, res) => {
   console.log('GET / triggered');
-  res.json({ message: '🚀 Server is running!' });
+  res.json({ message: 'Server is running!' });
 });
 
 // Global error handler
@@ -65,5 +68,5 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

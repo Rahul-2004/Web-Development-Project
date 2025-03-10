@@ -8,7 +8,7 @@ router.get('/profile', (req, res) => {
     console.log('🔹 Authenticated user:', req.user);
     return res.json({ user: req.user });
   }
-  console.log('❌ User not authenticated');
+  console.log('User not authenticated');
   res.status(401).json({ error: 'Not authenticated' });
 });
 

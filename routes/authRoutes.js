@@ -27,12 +27,12 @@ router.get('/user', (req, res) => {
 router.get('/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
-      console.error('❌ Error in logout:', err);
+      console.error(' Error in logout:', err);
       return res.status(500).json({ error: 'Logout failed' });
     }
     req.session.destroy((err) => {
       if (err) {
-        console.error('❌ Session destroy error:', err);
+        console.error('Session destroy error:', err);
         return res.status(500).json({ error: 'Logout failed' });
       }
       res.redirect('http://localhost:5500/index.html'); // Redirect after logout

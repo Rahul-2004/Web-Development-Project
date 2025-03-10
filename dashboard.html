@@ -13,7 +13,6 @@
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #eee; }
-    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -21,6 +20,7 @@
     <h1>Stock Tracker Dashboard</h1>
     <button id="logoutBtn">Logout</button>
   </header>
+
   <main>
     <section id="userInfo">
       <h2>Welcome, <span id="userName"></span></h2>
@@ -62,93 +62,141 @@
   <script>
     let currentUserEmail = '';
 
-    // Fetch logged-in user details from backend
+    // Fetch logged-in user details and refresh stocks
     async function fetchUser() {
+      console.log('[DEBUG] fetchUser called');
       try {
         const res = await fetch('http://localhost:5000/auth/user', { credentials: 'include' });
         const data = await res.json();
+        console.log('[DEBUG] fetchUser data:', data);
+
         if (data.user) {
           document.getElementById('userName').innerText = data.user.name;
           document.getElementById('userEmail').innerText = data.user.email;
           currentUserEmail = data.user.email;
-          fetchStocks();
+          console.log('[DEBUG] Current user email set to:', currentUserEmail);
+
+          fetchStocks(); // Automatically refresh stocks after login
         } else {
-          // Not logged in; redirect to login page
-          window.location.href = "index.html";
+          window.location.href = "index.html"; // Redirect if not logged in
         }
       } catch (error) {
-        console.error('Error fetching user:', error);
+        console.error('[DEBUG] Error fetching user:', error);
       }
     }
 
     // Add a new stock
     async function addStock(event) {
       event.preventDefault();
+      console.log('[DEBUG] addStock called');
+
       const symbol = document.getElementById('stockSymbol').value;
       const buyPrice = parseFloat(document.getElementById('stockBuyPrice').value);
       const quantity = parseInt(document.getElementById('stockQuantity').value, 10);
+      console.log('[DEBUG] addStock input:', { symbol, buyPrice, quantity });
 
-      const res = await fetch('http://localhost:5000/stocks/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userEmail: currentUserEmail, symbol, buyPrice, quantity })
-      });
-      const data = await res.json();
-      alert(data.message);
-      fetchStocks();
+      try {
+        const res = await fetch('http://localhost:5000/stocks/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ symbol, buyPrice, quantity })
+        });
+
+        console.log('[DEBUG] addStock response:', res);
+        const data = await res.json();
+        console.log('[DEBUG] addStock data:', data);
+        
+        alert(data.message);
+        fetchStocks(); // Refresh stocks after adding one
+      } catch (error) {
+        console.error('[DEBUG] Error in addStock:', error);
+      }
     }
 
     // Fetch stocks with profit/loss info
     async function fetchStocks() {
-      const res = await fetch(`http://localhost:5000/stocks/profitloss/${currentUserEmail}`, { credentials: 'include' });
-      const data = await res.json();
-      const tbody = document.querySelector('#stocksList tbody');
-      tbody.innerHTML = '';
-      if (data.stocks && data.stocks.length > 0) {
-        data.stocks.forEach(stock => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${stock.symbol}</td>
-            <td>${stock.quantity}</td>
-            <td>${stock.buyPrice}</td>
-            <td>${stock.currentDayPrice}</td>
-            <td>${stock.profit}</td>
-            <td>${stock.currentValue}</td>
-            <td><button onclick="deleteStock('${stock._id}')">Delete</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } else {
-        tbody.innerHTML = `<tr><td colspan="7">No stocks found</td></tr>`;
+      console.log('[DEBUG] fetchStocks called');
+      if (!currentUserEmail) {
+        console.error('[DEBUG] currentUserEmail is not set');
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:5000/stocks/profitloss/${currentUserEmail}`, { credentials: 'include' });
+        console.log('[DEBUG] fetchStocks response:', res);
+        const data = await res.json();
+        console.log('[DEBUG] fetchStocks data:', data);
+
+        const tbody = document.querySelector('#stocksList tbody');
+        tbody.innerHTML = '';
+
+        if (data.stocks && data.stocks.length > 0) {
+          data.stocks.forEach(stock => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${stock.symbol}</td>
+              <td>${stock.quantity}</td>
+              <td>${stock.buyPrice}</td>
+              <td>${stock.currentDayPrice || 'N/A'}</td>
+              <td>${stock.profit || 'N/A'}</td>
+              <td>${stock.currentValue || 'N/A'}</td>
+              <td><button onclick="deleteStock('${stock.symbol}')">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = `<tr><td colspan="7">No stocks found</td></tr>`;
+        }
+      } catch (error) {
+        console.error('[DEBUG] Error fetching stocks:', error);
       }
     }
 
-    // Delete a stock entry (calls DELETE endpoint)
-    async function deleteStock(stockId) {
-      if (!confirm("Are you sure you want to delete this stock?")) return;
-      const res = await fetch(`http://localhost:5000/stocks/delete/${stockId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      const data = await res.json();
-      alert(data.message);
-      fetchStocks();
+    // Delete a stock entry
+    async function deleteStock(symbol) {
+      if (!confirm(`Are you sure you want to delete stock ${symbol}?`)) return;
+      console.log('[DEBUG] deleteStock called for symbol:', symbol);
+
+      try {
+        const res = await fetch(`http://localhost:5000/stocks/delete/${symbol}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        console.log('[DEBUG] deleteStock response:', res);
+        const data = await res.json();
+        console.log('[DEBUG] deleteStock data:', data);
+
+        alert(data.message);
+        fetchStocks(); // Refresh after deletion
+      } catch (error) {
+        console.error('[DEBUG] Error deleting stock:', error);
+      }
     }
 
     // Logout function
     async function logout() {
-      const res = await fetch('http://localhost:5000/auth/logout', { credentials: 'include' });
-      if (res.ok) {
-        window.location.href = "index.html";
+      console.log('[DEBUG] logout called');
+
+      try {
+        const res = await fetch('http://localhost:5000/auth/logout', { credentials: 'include' });
+        console.log('[DEBUG] logout response:', res);
+
+        if (res.ok) {
+          window.location.href = "index.html";
+        }
+      } catch (error) {
+        console.error('[DEBUG] Error logging out:', error);
       }
     }
 
+    // Event Listeners
     document.getElementById('addStockForm').addEventListener('submit', addStock);
     document.getElementById('refreshStocks').addEventListener('click', fetchStocks);
     document.getElementById('logoutBtn').addEventListener('click', logout);
 
-    // On page load, check if user is logged in
+    // On page load, fetch user and refresh stocks automatically
     fetchUser();
   </script>
 </body>
